@@ -72,7 +72,7 @@ def render(df: pd.DataFrame):
         by_day_plot = by_day.copy()
         by_day_plot["date"] = pd.to_datetime(by_day_plot["date"])
 
-        bar_size = 36
+        bar_size = 30
         # Impressions by Day (MM-DD)
         chart_impr_day = (
             alt.Chart(by_day_plot)
