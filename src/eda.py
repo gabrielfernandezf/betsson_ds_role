@@ -67,32 +67,46 @@ def render(df: pd.DataFrame):
 
     # ---- TEMPORAL ----
     with tab_temporal:
-       
-        # Ensure temporal dtype
+        # Aseguramos tipo datetime
         by_day_plot = by_day.copy()
         by_day_plot["date"] = pd.to_datetime(by_day_plot["date"])
-
         bar_size = 30
-        # Impressions by Day (MM-DD)
+        # Impressions by Day (eje MM-DD vertical, barras con ancho fijo)
         chart_impr_day = (
             alt.Chart(by_day_plot)
-            .mark_bar(size=bar_size)
+            .mark_bar(size=bar_size)  # controla el ancho de barra en escala discreta
             .encode(
-                x=alt.X("date_str:N", axis=alt.Axis(labelAngle=-90, title="Date"), sort=order),
+                x=alt.X(
+                    "yearmonthdate(date):O",  # escala discreta por día
+                    axis=alt.Axis(format="%m-%d", labelAngle=-90, title="Date"),
+                    sort="ascending",
+                ),
                 y=alt.Y("impressions:Q", title="Impressions"),
-                tooltip=[alt.Tooltip("date:T", format="%Y-%m-%d"), "impressions:Q", alt.Tooltip("ctr:Q", format=".4f")],
+                tooltip=[
+                    alt.Tooltip("date:T", format="%Y-%m-%d"),
+                    alt.Tooltip("impressions:Q", title="Impressions"),
+                    alt.Tooltip("ctr:Q", format=".4f", title="CTR"),
+                ],
             )
             .properties(title="Impressions by Day", height=280)
         )
         
-        # CTR by Day (MM-DD)
+        # CTR by Day (mismo eje)
         chart_ctr_day = (
             alt.Chart(by_day_plot)
             .mark_bar(size=bar_size)
             .encode(
-                x=alt.X("date_str:N", axis=alt.Axis(labelAngle=-90, title="Date"), sort=order),
+                x=alt.X(
+                    "yearmonthdate(date):O",
+                    axis=alt.Axis(format="%m-%d", labelAngle=-90, title="Date"),
+                    sort="ascending",
+                ),
                 y=alt.Y("ctr:Q", title="CTR"),
-                tooltip=[alt.Tooltip("date:T", format="%Y-%m-%d"), alt.Tooltip("ctr:Q", format=".4f"), "impressions:Q"],
+                tooltip=[
+                    alt.Tooltip("date:T", format="%Y-%m-%d"),
+                    alt.Tooltip("ctr:Q", format=".4f", title="CTR"),
+                    alt.Tooltip("impressions:Q", title="Impressions"),
+                ],
             )
             .properties(title="CTR by Day", height=280)
         )
