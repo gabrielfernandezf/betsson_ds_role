@@ -245,3 +245,81 @@ def df_to_csv_download(df: pd.DataFrame, filename: str, label: str):
     buf = io.StringIO()
     df.to_csv(buf, index=False)
     st.download_button(label=label, data=buf.getvalue(), file_name=filename, mime="text/csv")
+
+# ---------- EDA Highlights ----------
+@st.cache_data(show_spinner=False)
+def eda_highlights(df: pd.DataFrame, min_support: int = 300) -> dict:
+    base_ctr = float(df["click"].mean())
+
+    by_day = (
+        df.groupby("date")
+          .agg(impressions=("click", "size"), ctr=("click", "mean"))
+          .reset_index()
+    )
+    best_day = by_day.loc[by_day["ctr"].idxmax()].to_dict()
+    worst_day = by_day.loc[by_day["ctr"].idxmin()].to_dict()
+
+    by_hour = (
+        df.groupby("hour_of_day")
+          .agg(impressions=("click", "size"), ctr=("click", "mean"))
+          .reset_index()
+    )
+    peak_hr_ctr = by_hour.loc[by_hour["ctr"].idxmax()].to_dict()
+    peak_hr_impr = by_hour.loc[by_hour["impressions"].idxmax()].to_dict()
+
+    # best banner_pos (with support filtering)
+    bp = ctr_table(df, "banner_pos", min_n=min_support, top=15) if "banner_pos" in df.columns else None
+    best_bp = bp.sort_values("lift", ascending=False).iloc[0].to_dict() if bp is not None and len(bp) else None
+
+    return {
+        "base_ctr": base_ctr,
+        "best_day": best_day,
+        "worst_day": worst_day,
+        "peak_hr_ctr": peak_hr_ctr,
+        "peak_hr_impr": peak_hr_impr,
+        "best_banner_pos": best_bp,
+    }
+
+# ---------- Optional: Cramér’s V association matrix ----------
+@st.cache_data(show_spinner=False)
+def cramers_v_matrix(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame | None:
+    """
+    Computes a Cramér's V matrix for a list of categorical columns.
+    Requires scipy; returns None if scipy is not available.
+    Uses bias-corrected formula.
+    """
+    try:
+        import numpy as np
+        import pandas as pd
+        from scipy.stats import chi2_contingency  # optional dependency
+    except Exception:
+        return None
+
+    cols = [c for c in cols if c in df.columns]
+    if not cols:
+        return None
+
+    def cramers_v(a: pd.Series, b: pd.Series) -> float:
+        ct = pd.crosstab(a, b)
+        chi2 = chi2_contingency(ct, correction=False)[0]
+        n = ct.values.sum()
+        r, k = ct.shape
+        if n == 0:
+            return np.nan
+        phi2 = chi2 / n
+        # bias correction (Bergsma)
+        phi2corr = max(0, phi2 - ((k - 1) * (r - 1)) / (n - 1)) if n > 1 else 0
+        rcorr = r - ((r - 1) ** 2) / (n - 1) if n > 1 else r
+        kcorr = k - ((k - 1) ** 2) / (n - 1) if n > 1 else k
+        denom = min((kcorr - 1), (rcorr - 1))
+        return np.sqrt(phi2corr / denom) if denom > 0 else np.nan
+
+    mat = pd.DataFrame(index=cols, columns=cols, dtype=float)
+    for i, c1 in enumerate(cols):
+        for j, c2 in enumerate(cols):
+            if j < i:
+                mat.loc[c1, c2] = mat.loc[c2, c1]
+            else:
+                mat.loc[c1, c2] = 1.0 if c1 == c2 else cramers_v(df[c1], df[c2])
+    return mat.round(3)
+
