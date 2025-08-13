@@ -78,7 +78,7 @@ def render(df: pd.DataFrame):
             alt.Chart(by_day_plot)
             .mark_bar(size=bar_size)
             .encode(
-                x=alt.X("date:T", axis=alt.Axis(format="%m-%d", title="Date")),
+                x=alt.X("date_str:N", axis=alt.Axis(labelAngle=-90, title="Date"), sort=order),
                 y=alt.Y("impressions:Q", title="Impressions"),
                 tooltip=[alt.Tooltip("date:T", format="%Y-%m-%d"), "impressions:Q", alt.Tooltip("ctr:Q", format=".4f")],
             )
@@ -90,7 +90,7 @@ def render(df: pd.DataFrame):
             alt.Chart(by_day_plot)
             .mark_bar(size=bar_size)
             .encode(
-                x=alt.X("date:T", axis=alt.Axis(format="%m-%d", title="Date")),
+                x=alt.X("date_str:N", axis=alt.Axis(labelAngle=-90, title="Date"), sort=order),
                 y=alt.Y("ctr:Q", title="CTR"),
                 tooltip=[alt.Tooltip("date:T", format="%Y-%m-%d"), alt.Tooltip("ctr:Q", format=".4f"), "impressions:Q"],
             )
