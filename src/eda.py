@@ -12,17 +12,16 @@ from .utils import (
     nulls_and_duplicates, interaction_matrices
 )
 
+# Fixed support threshold to keep UI simple and deterministic
+MIN_SUPPORT = 300
 
 def render(df):
     st.header("Exploratory Data Analysis")
+    st.caption(f"Filtering small groups with support < **{MIN_SUPPORT}** "
+               "(applied to coverage/lift tables and interaction matrices).")
 
-    # Control (remembered via session_state)
-    default_support = st.session_state.get("min_support", 300)
-    min_support = st.slider("Minimum group size (support)", 50, 2000, default_support, 50)
-    st.session_state.min_support = min_support
-
-    # Core EDA artifacts (same as before)
-    by_day, by_hour, ctr_tabs, pivot_ctr, pivot_n, uni = eda_tables(df, min_support)
+    # Core EDA artifacts (with fixed min support)
+    by_day, by_hour, ctr_tabs, pivot_ctr, pivot_n, uni, support_info = eda_tables(df, MIN_SUPPORT)
 
     # Temporal
     st.subheader("Temporal patterns")
@@ -45,7 +44,7 @@ def render(df):
         use_container_width=True,
     )
 
-    # NEW: Day-of-week table
+    # Day-of-week
     st.subheader("Day-of-week (coverage & lift)")
     dow_tbl = weekday_table(df)
     st.dataframe(dow_tbl, use_container_width=True)
@@ -54,7 +53,10 @@ def render(df):
     # Categoricals
     st.subheader("Categoricals — coverage & lift")
     for name, tbl in ctr_tabs.items():
-        st.markdown(f"**{name}**")
+        kept = support_info.get(name, {}).get("kept", None)
+        total = support_info.get(name, {}).get("total", None)
+        suffix = f"  · kept {kept}/{total} groups ≥ {MIN_SUPPORT}" if kept is not None else ""
+        st.markdown(f"**{name}**{suffix}")
         st.dataframe(tbl, use_container_width=True)
         df_to_csv_download(tbl, f"eda_ctr_{name}.csv", f"⬇️ Download {name}")
 
@@ -71,9 +73,9 @@ def render(df):
     else:
         st.info("Required columns missing (`hour_of_day` and `banner_pos`).")
 
-    # NEW: second interaction (hour × device_type)
+    # hour × device_type (filtered by the same support)
     st.markdown("**hour_of_day × device_type**")
-    dev_ctr, dev_n = interaction_matrices(df, "device_type")
+    dev_ctr, dev_n = interaction_matrices(df, "device_type", min_support=MIN_SUPPORT)
     if dev_ctr is not None:
         st.write("CTR matrix")
         st.dataframe(dev_ctr, use_container_width=True)
@@ -84,19 +86,19 @@ def render(df):
     else:
         st.info("`device_type` not available.")
 
-    # NEW: Context mix (site/app)
+    # Context mix
     st.subheader("Context mix (site vs app)")
     ctx = context_mix(df)
     st.dataframe(ctx, use_container_width=True)
     df_to_csv_download(ctx, "eda_context_mix.csv", "⬇️ Download context mix")
 
-    # NEW: C14–C21 quick overview
+    # C14–C21 overview
     st.subheader("Anonymous feature blocks (C14–C21) — quick overview")
     c_over = c14_c21_overview(df)
     st.dataframe(c_over, use_container_width=True)
     df_to_csv_download(c_over, "eda_C14_C21_overview.csv", "⬇️ Download C14–C21 overview")
 
-    # NEW: C20 unknown vs known
+    # C20 unknown vs known
     st.subheader("C20 — unknown (−1) vs known")
     c20_stats = c20_unknown_known(df)
     if c20_stats is not None:
@@ -104,12 +106,12 @@ def render(df):
     else:
         st.info("C20 not present in this dataset.")
 
-    # Leakage (unchanged)
+    # Leakage
     st.subheader("Leakage watch — high-cardinality IDs")
     st.dataframe(uni, use_container_width=True)
     df_to_csv_download(uni, "eda_leakage_uniqueness.csv", "⬇️ Download leakage table")
 
-    # NEW: Data quality snapshot
+    # Data quality
     st.subheader("Data quality")
     nulls, dup_rows = nulls_and_duplicates(df)
     c5, c6 = st.columns([2, 1])
