@@ -182,9 +182,44 @@ elif selected == "EDA":
     df_to_csv_download(uni, "eda_leakage_uniqueness.csv", "⬇️ Descargar leakage table")
 
 elif selected == "Model":
-    st.header("Model (coming next)")
-    st.write("Acá vamos a mostrar: preprocessing, métricas (ROC/PR-AUC), Precision@K/Lift, y comparación Baseline vs Tuned.")
-    st.warning("Stub por ahora. En la próxima iteración cargamos artifacts precalculados (`artifacts/metrics.json`, curvas, feature_importance.csv).")
+    import json
+    from pathlib import Path
+    import pandas as pd
+
+    st.header("Model performance & evaluation")
+
+    ART = Path("artifacts")
+    met_path = ART / "metrics.json"
+    roc_path = ART / "roc_curve.png"
+    pr_path  = ART / "pr_curve.png"
+    fi_path  = ART / "feature_importance.csv"
+
+    # metrics.json
+    if met_path.exists():
+        with met_path.open() as f:
+            metrics = json.load(f)
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("ROC-AUC", f"{metrics.get('roc_auc', float('nan')):.4f}")
+        c2.metric("PR-AUC",  f"{metrics.get('pr_auc', float('nan')):.4f}")
+        c3.metric("Precision@5%", f"{metrics.get('precision_at_05', float('nan')):.4f}")
+        c4.metric("Lift@5%",      f"{metrics.get('lift_at_05', float('nan')):.2f}")
+        st.json(metrics)
+    else:
+        st.warning("No encontré artifacts/metrics.json. Generá los artefactos con el script y subilos al repo.")
+
+    # Curvas
+    cols = st.columns(2)
+    if roc_path.exists():
+        cols[0].image(str(roc_path), caption="ROC curve", use_column_width=True)
+    if pr_path.exists():
+        cols[1].image(str(pr_path), caption="Precision-Recall curve", use_column_width=True)
+
+    # Feature Importance
+    if fi_path.exists():
+        st.subheader("Feature importance")
+        st.dataframe(pd.read_csv(fi_path), use_container_width=True)
+    else:
+        st.info("Subí artifacts/feature_importance.csv para mostrar importancia de variables.")
 
 elif selected == "Interpretability & Business":
     st.header("Interpretability & Business (coming next)")
