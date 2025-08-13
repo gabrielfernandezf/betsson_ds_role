@@ -75,7 +75,7 @@ def render(df: pd.DataFrame):
         # Impressions by Day (MM-DD)
         chart_impr_day = (
             alt.Chart(by_day_plot)
-            .mark_bar()
+            .mark_bar(size=16)
             .encode(
                 x=alt.X("date:T", axis=alt.Axis(format="%m-%d", title="Date")),
                 y=alt.Y("impressions:Q", title="Impressions"),
