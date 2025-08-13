@@ -192,12 +192,21 @@ def render(df: pd.DataFrame):
                 mime="text/markdown",
                 use_container_width=True,
             )
+        def _json_default(o):
+            import numpy as np, pandas as pd, datetime as dt
+            if isinstance(o, (np.integer, np.floating, np.bool_)):
+                return o.item()
+            if isinstance(o, (pd.Timestamp, dt.date, dt.datetime)):
+                return o.isoformat()
+            return str(o)
+        
         with col_b:
             st.download_button(
                 "⬇️ Download EDA_Summary.json",
-                data=json.dumps(summary_json, indent=2),
+                data=json.dumps(summary_json, indent=2, default=_json_default),
                 file_name="EDA_Summary.json",
                 mime="application/json",
                 use_container_width=True,
             )
+
 
