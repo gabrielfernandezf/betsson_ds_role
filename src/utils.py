@@ -326,6 +326,15 @@ def cramers_v_matrix(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame | None:
 # ---------- Build a human-readable Markdown summary ----------
 @st.cache_data(show_spinner=False)
 def build_eda_summary_md(high: dict, dow_tbl: pd.DataFrame, ctr_tabs: dict[str, pd.DataFrame]) -> str:
+    def _df_to_md_safe(df: pd.DataFrame) -> str:
+        try:
+            return df.to_markdown(index=False)
+        except Exception:
+            # Fallback simple si 'tabulate' no está instalado
+            buf = io.StringIO()
+            df.to_csv(buf, index=False)
+            return "```\n" + buf.getvalue() + "```"
+
     lines = []
     lines.append("# EDA Summary")
     lines.append("")
@@ -339,14 +348,12 @@ def build_eda_summary_md(high: dict, dow_tbl: pd.DataFrame, ctr_tabs: dict[str, 
         lines.append(f"- **banner_pos={bp['banner_pos']}** → CTR={bp['ctr']:.4f} | lift={bp['lift']:.2f}× | share={bp['share']:.2%}")
     lines.append("")
     lines.append("## Day-of-week (coverage & lift)")
-    lines.append(dow_tbl.to_markdown(index=False))
+    lines.append(_df_to_md_safe(dow_tbl))
     lines.append("")
     lines.append("## Categoricals (top groups by support)")
     for name, tbl in ctr_tabs.items():
         lines.append(f"### {name}")
-        # show top 5 rows only to keep it short
-        head5 = tbl.head(5)
-        lines.append(head5.to_markdown(index=False))
+        lines.append(_df_to_md_safe(tbl.head(5)))
         lines.append("")
     return "\n".join(lines)
 
