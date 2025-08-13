@@ -1,18 +1,11 @@
 # main.py
 import io
-import os
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import streamlit as st
 import altair as alt
-
-# Top nav (horizontal)
-try:
-    from streamlit_option_menu import option_menu
-    HAS_OPT_MENU = True
-except Exception:
-    HAS_OPT_MENU = False
+from streamlit_option_menu import option_menu
 
 # -----------------------
 # Page config & styling
@@ -21,20 +14,16 @@ st.set_page_config(page_title="NBA Prototype — Avazu CTR", layout="wide")
 st.markdown(
     """
     <style>
-    .block-container {padding-top: 1rem; padding-bottom: 2rem;}
+      .block-container {padding-top: 1rem; padding-bottom: 2rem;}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 # -----------------------
-# State & constants
+# Constants & State
 # -----------------------
-DATA_DIR = Path("data")
-DEFAULT_PATH = DATA_DIR / "50krecords.csv"
-
-if "dataset_label" not in st.session_state:
-    st.session_state.dataset_label = "data/50krecords.csv" if DEFAULT_PATH.exists() else "uploaded_file"
+DATA_CSV = Path("data/avazu_50k_rows.csv")
 
 if "min_support" not in st.session_state:
     st.session_state.min_support = 300
@@ -54,9 +43,8 @@ def parse_hour(series: pd.Series) -> pd.Series:
     return dt
 
 @st.cache_data(show_spinner=False)
-def load_data(file_or_path):
-    """Load CSV (path or uploaded file), build time features."""
-    df = pd.read_csv(file_or_path, low_memory=False)
+def load_data(path: Path) -> pd.DataFrame:
+    df = pd.read_csv(path, low_memory=False)
     dt = parse_hour(df["hour"])
     df["dt"] = dt
     df["date"] = df["dt"].dt.date
@@ -83,10 +71,13 @@ def eda_tables(df: pd.DataFrame, min_support: int = 300):
     candidates = [c for c in ["banner_pos","device_type","device_conn_type","site_category","app_category"] if c in df.columns]
     ctr_tabs = {c: ctr_table(df, c, min_support, 15) for c in candidates}
     # Interactions: hour x banner_pos
-    pivot_ctr = (df.groupby(["hour_of_day","banner_pos"])["click"].mean()
-                   .unstack("banner_pos").sort_index().round(4)) if {"hour_of_day","banner_pos"}.issubset(df.columns) else None
-    pivot_n   = (df.groupby(["hour_of_day","banner_pos"])["click"].size()
-                   .unstack("banner_pos").sort_index().fillna(0).astype(int)) if {"hour_of_day","banner_pos"}.issubset(df.columns) else None
+    if {"hour_of_day","banner_pos"}.issubset(df.columns):
+        pivot_ctr = (df.groupby(["hour_of_day","banner_pos"])["click"].mean()
+                       .unstack("banner_pos").sort_index().round(4))
+        pivot_n   = (df.groupby(["hour_of_day","banner_pos"])["click"].size()
+                       .unstack("banner_pos").sort_index().fillna(0).astype(int))
+    else:
+        pivot_ctr, pivot_n = None, None
     # Leakage / uniqueness
     cand = [c for c in ["device_ip","device_id","id","site_id","app_id","device_model"] if c in df.columns]
     uni = pd.DataFrame({"col": cand,
@@ -114,56 +105,36 @@ def df_to_csv_download(df: pd.DataFrame, filename: str, label: str):
     st.download_button(label=label, data=buf.getvalue(), file_name=filename, mime="text/csv")
 
 # -----------------------
-# Sidebar
+# Load data (fixed path)
+# -----------------------
+if not DATA_CSV.exists():
+    st.error("No encontré `data/avazu_50k_rows.csv`. Subí el CSV a esa ruta en el repo.")
+    st.stop()
+
+df = load_data(DATA_CSV)
+base_ctr = df["click"].mean()
+time_window = f"{df['dt'].min()} → {df['dt'].max()}"
+
+# -----------------------
+# Sidebar Navigation
 # -----------------------
 with st.sidebar:
-    st.header("Data")
-    st.caption("Default: `data/50krecords.csv` (sample). Podés subir otro CSV compatible.")
-    up = st.file_uploader("Subir CSV (opcional)", type=["csv"])
-    if up is not None:
-        st.session_state.dataset_label = "uploaded_file"
-        df = load_data(up)
-    else:
-        st.session_state.dataset_label = str(DEFAULT_PATH) if DEFAULT_PATH.exists() else "uploaded_file"
-        df = load_data(DEFAULT_PATH) if DEFAULT_PATH.exists() else None
-
-    st.session_state.min_support = st.slider("Min group size (support)", 50, 2000, st.session_state.min_support, 50)
-
-# -----------------------
-# Top Navigation
-# -----------------------
-menu_items = ["Overview", "EDA", "Model", "Interpretability & Business"]
-icons = ["house", "bar-chart", "cpu", "lightbulb"]
-
-if HAS_OPT_MENU:
     selected = option_menu(
-        None, menu_items, icons=icons, default_index=0, orientation="horizontal"
+        "Navegación",
+        ["Overview", "EDA", "Model", "Interpretability & Business"],
+        icons=["house", "bar-chart", "cpu", "lightbulb"],
+        menu_icon="cast",
+        default_index=0,
+        orientation="vertical",
     )
-else:
-    # Fallback simple tabs if option_menu is not installed
-    selected = st.tabs(menu_items)
-    # When using tabs fallback, just set selected label to first tab's title for rendering once.
-    if isinstance(selected, list):
-        selected_label = menu_items[0]
-    else:
-        selected_label = selected
-    # We'll keep the same API below
-    selected = selected_label
 
 # -----------------------
 # Sections
 # -----------------------
-if df is None:
-    st.error("No encontré `data/50krecords.csv` y no subiste un CSV. Subí un archivo o agregá el sample a la carpeta `data/`.")
-    st.stop()
-
-base_ctr = df["click"].mean()
-time_window = f"{df['dt'].min()} → {df['dt'].max()}"
-
 if selected == "Overview":
     st.title("Next Best Action (NBA) — Prototype")
     st.write("""
-    **Use case**: predecir propensión a interactuar (CTR) para priorizar la *próxima mejor acción*.
+    **Use case**: predecir propensión a interactuar (CTR) para priorizar la *próxima mejor acción*.  
     **Dataset**: Avazu CTR sample (50k). Anónimo, tabular, 10 días, binaria (click/no click).
     """)
     c1, c2, c3, c4 = st.columns(4)
@@ -172,11 +143,14 @@ if selected == "Overview":
     c3.metric("Base CTR", f"{base_ctr:.4f}")
     c4.metric("Time window", time_window)
 
-    st.info("Tip: en la sidebar podés subir otro CSV. La app recuerda tu selección en esta sesión.")
-
 elif selected == "EDA":
     st.header("Exploratory Data Analysis")
-    by_day, by_hour, ctr_tabs, pivot_ctr, pivot_n, uni = eda_tables(df, st.session_state.min_support)
+
+    # control dentro de la página (no en sidebar)
+    min_support = st.slider("Min group size (support)", 50, 2000, st.session_state.min_support, 50)
+    st.session_state.min_support = min_support
+
+    by_day, by_hour, ctr_tabs, pivot_ctr, pivot_n, uni = eda_tables(df, min_support)
 
     c1, c2 = st.columns(2)
     c1.altair_chart(alt_bar(by_day, "date:N", "impressions:Q", "Impressions by Day", ["date","impressions","ctr"]), use_container_width=True)
