@@ -32,14 +32,30 @@ def render(df: pd.DataFrame):
 
     # ---- OVERVIEW ----
     with tab_overview:
+        
         c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("Base CTR", f"{highlights['base_ctr']:.4f}")
-        c2.metric("Best Day", f"{highlights['best_day']['date']}", f"{highlights['best_day']['ctr']:.4f} CTR")
-        c3.metric("Worst Day", f"{highlights['worst_day']['date']}", f"{highlights['worst_day']['ctr']:.4f} CTR")
-        c4.metric("Peak Hour (CTR)", f"{int(highlights['peak_hr_ctr']['hour_of_day'])}:00", f"{highlights['peak_hr_ctr']['ctr']:.4f}")
-        if highlights["best_banner_pos"] is not None:
-            bp = highlights["best_banner_pos"]
-            c5.metric("Best banner_pos (lift)", f"{bp['banner_pos']}", f"{bp['lift']:.2f}×")
+        
+        with c1:
+            st.metric("Base CTR", f"{hi['base_ctr']:.4f}")
+        
+        with c2:
+            st.metric("Best Day", f"{hi['best_day']['date']}")
+            st.caption(f"CTR {hi['best_day']['ctr']:.4f} · Impr {int(hi['best_day']['impressions'])}")
+        
+        with c3:
+            st.metric("Worst Day", f"{hi['worst_day']['date']}")
+            st.caption(f"CTR {hi['worst_day']['ctr']:.4f}")
+        
+        with c4:
+            st.metric("Peak Hour (CTR)", f"{int(hi['peak_hr_ctr']['hour_of_day']):02d}:00")
+            st.caption(f"CTR {hi['peak_hr_ctr']['ctr']:.4f}")
+        
+        with c5:
+            bp = hi.get("best_banner_pos")
+            if bp:
+                st.metric("Best banner_pos", f"{bp['banner_pos']}")
+                st.caption(f"CTR {bp['ctr']:.4f} · lift {bp['lift']:.2f}× · share {bp['share']:.2%}")
+
 
         _divider()
         st.subheader("Day-of-week (coverage & lift)")
@@ -49,15 +65,39 @@ def render(df: pd.DataFrame):
 
     # ---- TEMPORAL ----
     with tab_temporal:
+       
+        # Ensure temporal dtype
+        by_day_plot = by_day.copy()
+        by_day_plot["date"] = pd.to_datetime(by_day_plot["date"])
+        
+        # Impressions by Day (MM-DD)
+        chart_impr_day = (
+            alt.Chart(by_day_plot)
+            .mark_bar()
+            .encode(
+                x=alt.X("date:T", axis=alt.Axis(format="%m-%d", title="Date")),
+                y=alt.Y("impressions:Q", title="Impressions"),
+                tooltip=[alt.Tooltip("date:T", format="%Y-%m-%d"), "impressions:Q", alt.Tooltip("ctr:Q", format=".4f")],
+            )
+            .properties(title="Impressions by Day", height=280)
+        )
+        
+        # CTR by Day (MM-DD)
+        chart_ctr_day = (
+            alt.Chart(by_day_plot)
+            .mark_bar()
+            .encode(
+                x=alt.X("date:T", axis=alt.Axis(format="%m-%d", title="Date")),
+                y=alt.Y("ctr:Q", title="CTR"),
+                tooltip=[alt.Tooltip("date:T", format="%Y-%m-%d"), alt.Tooltip("ctr:Q", format=".4f"), "impressions:Q"],
+            )
+            .properties(title="CTR by Day", height=280)
+        )
+        
         c1, c2 = st.columns(2)
-        c1.altair_chart(
-            alt_bar(by_day, "date:N", "impressions:Q", "Impressions by Day", ["date", "impressions", "ctr"]),
-            use_container_width=True,
-        )
-        c2.altair_chart(
-            alt_bar(by_day, "date:N", "ctr:Q", "CTR by Day", ["date", "ctr"]),
-            use_container_width=True,
-        )
+        c1.altair_chart(chart_impr_day, use_container_width=True)
+        c2.altair_chart(chart_ctr_day, use_container_width=True)
+
 
         c3, c4 = st.columns(2)
         c3.altair_chart(
