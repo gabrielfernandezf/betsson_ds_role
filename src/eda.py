@@ -71,11 +71,12 @@ def render(df: pd.DataFrame):
         # Ensure temporal dtype
         by_day_plot = by_day.copy()
         by_day_plot["date"] = pd.to_datetime(by_day_plot["date"])
-        
+
+        bar_size = 36
         # Impressions by Day (MM-DD)
         chart_impr_day = (
             alt.Chart(by_day_plot)
-            .mark_bar(size=48)
+            .mark_bar(size=bar_size)
             .encode(
                 x=alt.X("date:T", axis=alt.Axis(format="%m-%d", title="Date")),
                 y=alt.Y("impressions:Q", title="Impressions"),
@@ -87,7 +88,7 @@ def render(df: pd.DataFrame):
         # CTR by Day (MM-DD)
         chart_ctr_day = (
             alt.Chart(by_day_plot)
-            .mark_bar()
+            .mark_bar(size=bar_size)
             .encode(
                 x=alt.X("date:T", axis=alt.Axis(format="%m-%d", title="Date")),
                 y=alt.Y("ctr:Q", title="CTR"),
