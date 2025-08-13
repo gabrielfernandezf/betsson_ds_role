@@ -323,3 +323,38 @@ def cramers_v_matrix(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame | None:
                 mat.loc[c1, c2] = 1.0 if c1 == c2 else cramers_v(df[c1], df[c2])
     return mat.round(3)
 
+# ---------- Build a human-readable Markdown summary ----------
+@st.cache_data(show_spinner=False)
+def build_eda_summary_md(high: dict, dow_tbl: pd.DataFrame, ctr_tabs: dict[str, pd.DataFrame]) -> str:
+    lines = []
+    lines.append("# EDA Summary")
+    lines.append("")
+    lines.append(f"- **Base CTR**: {high['base_ctr']:.4f}")
+    lines.append(f"- **Best day**: {high['best_day']['date']} | CTR={high['best_day']['ctr']:.4f} | Impr={int(high['best_day']['impressions'])}")
+    lines.append(f"- **Worst day**: {high['worst_day']['date']} | CTR={high['worst_day']['ctr']:.4f}")
+    lines.append(f"- **Peak hour (CTR)**: {int(high['peak_hr_ctr']['hour_of_day'])}:00 | CTR={high['peak_hr_ctr']['ctr']:.4f}")
+    lines.append(f"- **Peak hour (Impr)**: {int(high['peak_hr_impr']['hour_of_day'])}:00 | Impr={int(high['peak_hr_impr']['impressions'])} | CTR={high['peak_hr_impr']['ctr']:.4f}")
+    if high.get("best_banner_pos"):
+        bp = high["best_banner_pos"]
+        lines.append(f"- **banner_pos={bp['banner_pos']}** → CTR={bp['ctr']:.4f} | lift={bp['lift']:.2f}× | share={bp['share']:.2%}")
+    lines.append("")
+    lines.append("## Day-of-week (coverage & lift)")
+    lines.append(dow_tbl.to_markdown(index=False))
+    lines.append("")
+    lines.append("## Categoricals (top groups by support)")
+    for name, tbl in ctr_tabs.items():
+        lines.append(f"### {name}")
+        # show top 5 rows only to keep it short
+        head5 = tbl.head(5)
+        lines.append(head5.to_markdown(index=False))
+        lines.append("")
+    return "\n".join(lines)
+
+# ---------- Build a machine-friendly JSON snapshot ----------
+@st.cache_data(show_spinner=False)
+def build_eda_summary_json(high: dict, dow_tbl: pd.DataFrame, ctr_tabs: dict[str, pd.DataFrame]) -> dict:
+    return {
+        "highlights": high,
+        "by_dow": dow_tbl.to_dict(orient="records"),
+        "categoricals": {name: tbl.to_dict(orient="records") for name, tbl in ctr_tabs.items()},
+    }
