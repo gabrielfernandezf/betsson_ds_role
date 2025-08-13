@@ -156,7 +156,7 @@ def render(df: pd.DataFrame):
     # ---- INSIGHTS ----
     with tab_insights:
         import json
-        from .utils import build_eda_summary_md, build_eda_summary_json, weekday_table
+        from .utils import build_eda_summary_md, build_eda_summary_json
 
         st.subheader("Key EDA insights")
 
