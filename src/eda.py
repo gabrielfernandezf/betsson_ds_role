@@ -36,25 +36,26 @@ def render(df: pd.DataFrame):
         c1, c2, c3, c4, c5 = st.columns(5)
         
         with c1:
-            st.metric("Base CTR", f"{hi['base_ctr']:.4f}")
+            st.metric("Base CTR", f"{highlights['base_ctr']:.4f}")
         
         with c2:
-            st.metric("Best Day", f"{hi['best_day']['date']}")
-            st.caption(f"CTR {hi['best_day']['ctr']:.4f} · Impr {int(hi['best_day']['impressions'])}")
+            st.metric("Best Day", f"{highlights['best_day']['date']}")
+            st.caption(f"CTR {highlights['best_day']['ctr']:.4f} · Impr {int(highlights['best_day']['impressions'])}")
         
         with c3:
-            st.metric("Worst Day", f"{hi['worst_day']['date']}")
-            st.caption(f"CTR {hi['worst_day']['ctr']:.4f}")
+            st.metric("Worst Day", f"{highlights['worst_day']['date']}")
+            st.caption(f"CTR {highlights['worst_day']['ctr']:.4f}")
         
         with c4:
-            st.metric("Peak Hour (CTR)", f"{int(hi['peak_hr_ctr']['hour_of_day']):02d}:00")
-            st.caption(f"CTR {hi['peak_hr_ctr']['ctr']:.4f}")
+            st.metric("Peak Hour (CTR)", f"{int(highlights['peak_hr_ctr']['hour_of_day']):02d}:00")
+            st.caption(f"CTR {highlights['peak_hr_ctr']['ctr']:.4f}")
         
         with c5:
-            bp = hi.get("best_banner_pos")
+            bp = highlights.get("best_banner_pos")
             if bp:
                 st.metric("Best banner_pos", f"{bp['banner_pos']}")
                 st.caption(f"CTR {bp['ctr']:.4f} · lift {bp['lift']:.2f}× · share {bp['share']:.2%}")
+        
 
 
         _divider()
