@@ -155,7 +155,12 @@ def render(df: pd.DataFrame):
 
     # ---- INSIGHTS ----
     with tab_insights:
+        import json
+        from .utils import build_eda_summary_md, build_eda_summary_json, weekday_table
+
         st.subheader("Key EDA insights")
+
+        # Bullet points (quick read)
         bullets = []
         bullets.append(f"- **Base CTR**: {highlights['base_ctr']:.4f}.")
         bullets.append(f"- **Best day**: {highlights['best_day']['date']} (CTR {highlights['best_day']['ctr']:.4f}; impressions {int(highlights['best_day']['impressions'])}).")
@@ -167,4 +172,32 @@ def render(df: pd.DataFrame):
             bullets.append(f"- **banner_pos={bp['banner_pos']}** shows CTR {bp['ctr']:.4f} (lift **{bp['lift']:.2f}×**) with share {bp['share']:.2%}.")
         st.markdown("\n".join(bullets))
 
-        st.caption("These insights directly support Slide 3: EDA insights (distributions, correlations/associations, notable patterns).")
+        st.caption("These insights support Slide 3: EDA insights (distributions, correlations/associations, notable patterns).")
+
+        # Auto-generated full summary (Markdown + JSON) + editor for last-mile tweaks
+        st.subheader("Downloadable summary")
+        dow_tbl = weekday_table(df)
+        summary_md = build_eda_summary_md(highlights, dow_tbl, ctr_tabs)
+        summary_json = build_eda_summary_json(highlights, dow_tbl, ctr_tabs)
+
+        # Optional in-app edits before download
+        edited_md = st.text_area("Edit summary before download (Markdown):", value=summary_md, height=280)
+
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.download_button(
+                "⬇️ Download EDA_Summary.md",
+                data=edited_md,
+                file_name="EDA_Summary.md",
+                mime="text/markdown",
+                use_container_width=True,
+            )
+        with col_b:
+            st.download_button(
+                "⬇️ Download EDA_Summary.json",
+                data=json.dumps(summary_json, indent=2),
+                file_name="EDA_Summary.json",
+                mime="application/json",
+                use_container_width=True,
+            )
+
