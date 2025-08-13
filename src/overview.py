@@ -24,6 +24,18 @@ def render(df):
     c2.metric("Columns", f"{df.shape[1]}")
     c3.metric("Base CTR", f"{base_ctr:.4f}")
     c4.metric("Time Window", time_window)
+    st.subheader("Executive summary")
+
+    EXEC_SUMMARY = """
+    - Baseline CTR is **0.1693**.  
+    - Weekends and late-night hours outperform; **Sat** is best by day, **01:00** is best by hour.  
+    - **banner_pos=1** consistently lifts CTR (~**+12%**).  
+    - Strong segmentation by **device_type** (**type=0** markedly higher; **type=4** much lower).  
+    - **Connection type** matters: avoid or downweight **type=3** contexts.  
+    - Certain **site/app categories** are premium (e.g., site “3e814130”, app “f95efa07”) and worth prioritizing.
+    """
+    st.markdown(EXEC_SUMMARY)
+    st.download_button("⬇️ Download Executive_Summary.md", data=EXEC_SUMMARY, file_name="Executive_Summary.md", mime="text/markdown")
 
     with st.expander("Rationale & Scope"):
         st.markdown(
