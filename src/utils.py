@@ -161,3 +161,77 @@ def df_to_csv_download(df: pd.DataFrame, filename: str, label: str):
         file_name=filename,
         mime="text/csv",
     )
+# --- NEW: day-of-week table ---
+@st.cache_data(show_spinner=False)
+def weekday_table(df: pd.DataFrame) -> pd.DataFrame:
+    base = df["click"].mean()
+    tbl = (
+        df.groupby("dow")
+          .agg(impressions=("click","size"), ctr=("click","mean"))
+          .reset_index()
+    )
+    tbl["dow_name"] = tbl["dow"].map({0:"Mon",1:"Tue",2:"Wed",3:"Thu",4:"Fri",5:"Sat",6:"Sun"})
+    tbl["lift"] = tbl["ctr"] / base
+    return tbl.sort_values("dow")
+
+# --- NEW: site/app context mix ---
+@st.cache_data(show_spinner=False)
+def context_mix(df: pd.DataFrame) -> pd.DataFrame:
+    def is_nonempty(x: pd.Series) -> pd.Series:
+        s = x.astype(str).str.lower()
+        return ~s.isin(["", "nan", "none", "null", "unknown"])
+    has_app  = is_nonempty(df["app_id"]) if "app_id" in df.columns else pd.Series(False, index=df.index)
+    has_site = is_nonempty(df["site_id"]) if "site_id" in df.columns else pd.Series(False, index=df.index)
+    ctx = np.where(has_app & ~has_site, "app_only",
+          np.where(has_site & ~has_app, "site_only",
+          np.where(has_app & has_site, "both", "unknown")))
+    t = pd.DataFrame({"context_type": ctx, "click": df["click"]})
+    g = t.groupby("context_type").agg(n=("click","size"), ctr=("click","mean")).reset_index()
+    g["share"] = g["n"] / len(df)
+    return g.sort_values("n", ascending=False)
+
+# --- NEW: C14–C21 quick overview (nunique + top 5 counts) ---
+@st.cache_data(show_spinner=False)
+def c14_c21_overview(df: pd.DataFrame) -> pd.DataFrame:
+    cols = [c for c in ["C14","C15","C16","C17","C18","C19","C20","C21"] if c in df.columns]
+    out = []
+    for c in cols:
+        vc = df[c].value_counts(dropna=False).head(5)
+        top = ", ".join([f"{k}({v})" for k, v in vc.items()])
+        out.append({"column": c, "nunique": int(df[c].nunique(dropna=True)), "top5": top})
+    return pd.DataFrame(out)
+
+# --- NEW: C20 unknown vs known ---
+@st.cache_data(show_spinner=False)
+def c20_unknown_known(df: pd.DataFrame):
+    if "C20" not in df.columns:
+        return None
+    unknown = (df["C20"] == -1)
+    return {
+        "unknown_share": float(unknown.mean()),
+        "ctr_unknown": float(df.loc[unknown, "click"].mean()),
+        "ctr_known": float(df.loc[~unknown, "click"].mean()),
+        "lift_known_vs_base": float(df.loc[~unknown, "click"].mean() / df["click"].mean())
+    }
+
+# --- NEW: nulls & duplicates snapshot ---
+@st.cache_data(show_spinner=False)
+def nulls_and_duplicates(df: pd.DataFrame):
+    nulls = df.isna().mean().sort_values(ascending=False).to_frame("null_rate").head(20)
+    duplicates = int(df.duplicated().sum())
+    return nulls, duplicates
+
+# --- NEW: generic interaction matrix (CTR & N) ---
+@st.cache_data(show_spinner=False)
+def interaction_matrices(df: pd.DataFrame, col: str):
+    if {"hour_of_day", col}.issubset(df.columns):
+        pivot_ctr = (
+            df.groupby(["hour_of_day", col])["click"]
+              .mean().unstack(col).sort_index().round(4)
+        )
+        pivot_n = (
+            df.groupby(["hour_of_day", col])["click"]
+              .size().unstack(col).sort_index().fillna(0).astype(int)
+        )
+        return pivot_ctr, pivot_n
+    return None, None
