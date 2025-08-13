@@ -6,6 +6,7 @@ Quality, Insights). Includes optional associations (Cramér's V) and auto insigh
 
 import streamlit as st
 import pandas as pd
+import altair as alt
 from .utils import (
     eda_tables, alt_bar, df_to_csv_download,
     weekday_table, context_mix, c14_c21_overview, c20_unknown_known,
