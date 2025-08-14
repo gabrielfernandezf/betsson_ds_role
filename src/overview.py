@@ -7,6 +7,13 @@ import streamlit as st
 import pandas as pd
 from .utils import eda_highlights
 
+st.set_page_config(
+    page_title="NBA Prototype",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
 def render(df: pd.DataFrame):
     st.title("Next Best Action (NBA) — Prototype")
 
