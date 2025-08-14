@@ -1,0 +1,8 @@
+# .streamlit/config.toml
+[theme]
+base = "dark"
+primaryColor = "#4F46E5"          # Indigo
+backgroundColor = "#0B1020"       # Dark navy
+secondaryBackgroundColor = "#101728"
+textColor = "#E6EBF2"
+font = "sans"
