@@ -1,46 +1,82 @@
 # src/model.py
-import json, pandas as pd, streamlit as st
 from pathlib import Path
+import json
+import pandas as pd
+import streamlit as st
 
-REPORTS = Path("artifacts/reports")
+def _load_reports(base: Path):
+    metrics = json.loads((base / "metrics.json").read_text())
+    gain = pd.read_csv(base / "gain_table_val.csv")
+    importances = pd.read_csv(base / "feature_importances.csv")
+    imgs = {
+        "calibration": base / "calibration_curve.png",
+        "pd_banner_pos": base / "pd_banner_pos.png",
+        "pd_device_type": base / "pd_device_type.png",
+        "pd_device_conn_type": base / "pd_device_conn_type.png",
+    }
+    return metrics, gain, importances, imgs
 
-def render(df):
-    st.header("Model — Results & Diagnostics")
+def render(df=None):
+    st.header("Model")
 
-    # Load metrics.json
-    mpath = REPORTS / "metrics.json"
-    with open(mpath, "r") as f:
-        M = json.load(f)
+    # where Streamlit finds your artifacts
+    reports_dir = Path("artifacts/reports")
+    if not reports_dir.exists():
+        st.error("artifacts/reports/ not found. Please add exported reports.")
+        return
 
-    st.subheader("Validation summary")
-    c1,c2,c3,c4 = st.columns(4)
-    c1.metric("Val day", M.get("val_day","—"))
-    c2.metric("Base CTR", f"{M['lgbm_calibrated']['base_ctr']:.4f}")
-    c3.metric("ROC-AUC", f"{M['lgbm_calibrated']['roc_auc']:.3f}")
-    c4.metric("LogLoss", f"{M['lgbm_calibrated']['logloss']:.3f}")
-    c1,c2,c3 = st.columns(3)
-    c1.metric("Lift@5%", f"{M['lgbm_calibrated']['lift@5%']:.2f}×")
-    c2.metric("Lift@10%", f"{M['lgbm_calibrated']['lift@10%']:.2f}×")
-    c3.metric("Lift@20%", f"{M['lgbm_calibrated']['lift@20%']:.2f}×")
+    metrics, gain, importances, imgs = _load_reports(reports_dir)
 
-    st.write("Compare baselines")
-    st.json({
-        "baseline_lr": M["baseline_lr"],
-        "lgbm_tuned_raw": M["lgbm_tuned_raw"],
-        "lgbm_calibrated": M["lgbm_calibrated"],
-    })
+    st.subheader("Validation metrics (hold-out last day)")
+    m = metrics["lgbm_calibrated"]
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("ROC-AUC", f"{m['roc_auc']:.3f}")
+    c2.metric("PR-AUC", f"{m['pr_auc']:.3f}")
+    c3.metric("LogLoss", f"{m['logloss']:.3f}")
+    c4.metric("Brier", f"{m['brier']:.3f}")
+    c5.metric("Base CTR", f"{m['base_ctr']:.3f}")
 
-    st.subheader("Gain table (validation)")
-    gain = pd.read_csv(REPORTS / "gain_table_val.csv")
+    # Lift@K (calibrated)
+    st.caption("Lift@K (calibrated)")
+    k_cols = [k for k in m.keys() if k.startswith("lift@")]
+    st.write({k: round(m[k], 3) for k in sorted(k_cols)})
+
+    st.divider()
+    st.subheader("Calibration")
+    if imgs["calibration"].exists():
+        st.image(str(imgs["calibration"]), use_container_width=True, caption="Calibration curve — LGBM (calibrated)")
+    else:
+        st.info("calibration_curve.png not found in artifacts/reports.")
+
+    st.subheader("Gain table (validation deciles)")
     st.dataframe(gain, use_container_width=True)
+    st.download_button("⬇️ Download gain table", data=gain.to_csv(index=False),
+                       file_name="gain_table_val.csv", mime="text/csv")
 
-    st.subheader("Feature importances (LGBM)")
-    imps = pd.read_csv(REPORTS / "feature_importances.csv")
-    st.dataframe(imps.head(20), use_container_width=True)
+    st.divider()
+    st.subheader("Top feature importances (LGBM)")
+    st.dataframe(importances.head(20), use_container_width=True)
+    st.download_button("⬇️ Download importances", data=importances.to_csv(index=False),
+                       file_name="feature_importances.csv", mime="text/csv")
 
-    st.subheader("Calibration & PDPs")
-    st.image(str(REPORTS / "calibration_curve.png"), caption="Calibration curve — LGBM (isotonic)")
-    for png in ["pd_banner_pos.png", "pd_device_type.png", "pd_device_conn_type.png"]:
-        p = REPORTS / png
+    st.divider()
+    st.subheader("Partial dependence (sanity checks)")
+    imgs_found = False
+    for key, p in imgs.items():
+        if key == "calibration":
+            continue
         if p.exists():
-            st.image(str(p), caption=png.replace("pd_","PD: ").replace(".png",""))
+            imgs_found = True
+            st.image(str(p), use_container_width=True, caption=p.stem.replace("_", " "))
+    if not imgs_found:
+        st.info("PD images not found in artifacts/reports.")
+
+    # Short narrative using your numbers
+    st.divider()
+    st.subheader("What the validation shows")
+    st.markdown(
+        "- **Calibration:** curve sits on the diagonal (≈0.05–0.35). Scores behave like true probabilities, enabling rules like `p > CPA/V`.\n"
+        "- **Concentration:** base CTR ~ **0.166**. Top 10% ⇒ **0.354** (Lift **2.13×**); top 20% ⇒ **0.304** (Lift **1.83×**); top 30% ⇒ **0.277** (Lift **1.67×**).\n"
+        "- **PDP sanity-check:** `device_type=1` above `4–5`; `conn_type=2` underperforms; `banner_pos` benefits with hour context.\n"
+        "- **Feature story:** engineered interactions (`hour×banner_pos`, `hour×device_type`) dominate importances—EDA→FE→Model alignment."
+    )
