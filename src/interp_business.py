@@ -54,18 +54,18 @@ def render(df=None):
 
     # Economic threshold
     p_star = (cpa / value) if value > 0 else float("inf")
-    st.metric("Economic threshold p★ (act if p ≥ p★)", f"{p_star:.3f}")
+    st.metric("Economic threshold p* (act if p ≥ p*)", f"{p_star:.3f}")
 
-    # Which deciles satisfy p ≥ p★ ?
+    # Which deciles satisfy p ≥ p* ?
     eligible = gain[gain["avg_p"] >= p_star]
-    st.write("Deciles meeting p ≥ p★ (by avg_p):")
+    st.write("Deciles meeting p ≥ p* (by avg_p):")
     st.dataframe(eligible[["decile", "n", "avg_p", "rate"]], use_container_width=True)
 
     st.divider()
     st.subheader("Practical guidance")
     st.markdown(
         "- If the **budget** covers ~top 10–20%, expect **~1.8–2.1×** the base CTR (per your validation).\n"
-        "- Use **p★ = CPA/V** to choose the operating point; contact users with `avg_p` ≥ `p★`.\n"
-        "- Down-weight/suppress segments consistently below p★ (e.g., low-yield `device_conn_type=2`) unless required for coverage.\n"
+        "- Use **p* = CPA/V** to choose the operating point; contact users with `avg_p` ≥ `p*`.\n"
+        "- Down-weight/suppress segments consistently below p* (e.g., low-yield `device_conn_type=2`) unless required for coverage.\n"
         "- Recalibrate periodically and re-tune thresholds if CPA or V change."
     )
