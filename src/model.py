@@ -3,6 +3,7 @@ from pathlib import Path
 import json
 import pandas as pd
 import streamlit as st
+import re, altair as alt
 
 def _load_reports(base: Path):
     metrics = json.loads((base / "metrics.json").read_text())
@@ -36,10 +37,32 @@ def render(df=None):
     c4.metric("Brier", f"{m['brier']:.3f}")
     c5.metric("Base CTR", f"{m['base_ctr']:.3f}")
 
-    # Lift@K (calibrated)
-    st.caption("Lift@K (calibrated)")
-    k_cols = [k for k in m.keys() if k.startswith("lift@")]
-    st.write({k: round(m[k], 3) for k in sorted(k_cols)})
+    st.subheader("Lift@K (calibrated)")
+    
+    # Collect and sort by numeric K
+    lift_items = []
+    for k, v in m.items():
+        if k.startswith("lift@"):
+            # extract the number before '%', e.g., 'lift@10%' -> 10
+            match = re.search(r"lift@(\d+)%", k)
+            if match:
+                lift_items.append((int(match.group(1)), v))
+    lift_items.sort(key=lambda t: t[0])  # ascending by K
+    
+    if not lift_items:
+        st.info("No Lift@K metrics found.")
+    else:
+        # KPI tiles
+        n = len(lift_items)
+        cols = st.columns(n if n <= 5 else 5)  # show up to 5 tiles per row
+        for i, (k, lift) in enumerate(lift_items[:5]):
+            delta = (lift - 1.0) * 100.0
+            cols[i].metric(
+                label=f"Lift@{k}%",
+                value=f"{lift:.2f}×",
+                delta=f"{delta:+.0f}%"
+            )
+
 
     st.divider()
     st.subheader("What the validation shows")
