@@ -10,6 +10,8 @@ from streamlit_option_menu import option_menu
 from src.utils import load_data
 from src.overview import render as render_overview
 from src.eda import render as render_eda
+from src.model import render as render_model
+from src.interp_business import render as render_interp
 
 # -----------------------
 # Page config & styling
@@ -59,9 +61,6 @@ elif selected == "EDA":
     render_eda(df)
 
 elif selected == "Model":
-    st.header("Model (coming next)")
-    st.info("In the next iteration we will load precomputed artifacts: `artifacts/metrics.json`, curves, and `feature_importance.csv`.")
-
+    render_model(df)
 elif selected == "Interpretability & Business":
-    st.header("Interpretability & Business (coming next)")
-    st.info("We will show SHAP/feature importance and translate insights into NBA decisions.")
+    render_interp(df)
