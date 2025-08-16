@@ -42,6 +42,15 @@ def render(df=None):
     st.write({k: round(m[k], 3) for k in sorted(k_cols)})
 
     st.divider()
+    st.subheader("What the validation shows")
+    st.markdown(
+        "- **Calibration:** curve sits on the diagonal (≈0.05–0.35). Scores behave like true probabilities, enabling rules like `p > CPA/V`.\n"
+        "- **Concentration:** base CTR ~ **0.166**. Top 10% ⇒ **0.354** (Lift **2.13×**); top 20% ⇒ **0.304** (Lift **1.83×**); top 30% ⇒ **0.277** (Lift **1.67×**).\n"
+        "- **PDP sanity-check:** `device_type=1` above `4–5`; `conn_type=2` underperforms; `banner_pos` benefits with hour context.\n"
+        "- **Feature story:** engineered interactions (`hour×banner_pos`, `hour×device_type`) dominate importances—EDA→FE→Model alignment."
+    )
+
+    st.divider()
     st.subheader("Calibration")
     if imgs["calibration"].exists():
         st.image(str(imgs["calibration"]), use_container_width=True, caption="Calibration curve — LGBM (calibrated)")
@@ -71,12 +80,3 @@ def render(df=None):
     if not imgs_found:
         st.info("PD images not found in artifacts/reports.")
 
-    # Short narrative using your numbers
-    st.divider()
-    st.subheader("What the validation shows")
-    st.markdown(
-        "- **Calibration:** curve sits on the diagonal (≈0.05–0.35). Scores behave like true probabilities, enabling rules like `p > CPA/V`.\n"
-        "- **Concentration:** base CTR ~ **0.166**. Top 10% ⇒ **0.354** (Lift **2.13×**); top 20% ⇒ **0.304** (Lift **1.83×**); top 30% ⇒ **0.277** (Lift **1.67×**).\n"
-        "- **PDP sanity-check:** `device_type=1` above `4–5`; `conn_type=2` underperforms; `banner_pos` benefits with hour context.\n"
-        "- **Feature story:** engineered interactions (`hour×banner_pos`, `hour×device_type`) dominate importances—EDA→FE→Model alignment."
-    )
