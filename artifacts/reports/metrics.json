@@ -1,0 +1,119 @@
+{
+  "generated_at": "2025-08-15T19:49:33",
+  "val_day": "2014-10-30",
+  "baseline_lr": {
+    "roc_auc": 0.6555825965349307,
+    "pr_auc": 0.2846514382326544,
+    "logloss": 0.42788018851981385,
+    "brier": 0.13182703773200924,
+    "base_ctr": 0.16643955616118358,
+    "lift@5%": 2.6183539263203404,
+    "lift@10%": 2.0572780849659815,
+    "lift@20%": 1.64976511385572
+  },
+  "lgbm_tuned_raw": {
+    "roc_auc": 0.6510011990898934,
+    "pr_auc": 0.2829583684384953,
+    "logloss": 0.5648090039639214,
+    "brier": 0.19254354845543903,
+    "base_ctr": 0.16643955616118358,
+    "lift@5%": 2.4547068059253188,
+    "lift@10%": 2.1157234851070608,
+    "lift@20%": 1.6965669610573006
+  },
+  "lgbm_calibrated": {
+    "roc_auc": 0.6568408214994905,
+    "pr_auc": 0.2808213195831175,
+    "logloss": 0.4248119405530659,
+    "brier": 0.13124093750209442,
+    "base_ctr": 0.16643955616118358,
+    "lift@5%": 2.4780849659817505,
+    "lift@10%": 2.1157234851070608,
+    "lift@20%": 1.731668346458486
+  },
+  "best_params": {
+    "subsample": 0.9,
+    "reg_lambda": 0.0,
+    "reg_alpha": 0.0,
+    "num_leaves": 63,
+    "n_estimators": 1000,
+    "min_child_samples": 200,
+    "learning_rate": 0.03,
+    "colsample_bytree": 0.9
+  },
+  "features_lr": {
+    "cats": [
+      "banner_pos",
+      "device_type",
+      "device_conn_type",
+      "dow",
+      "site_category_red",
+      "app_category_red",
+      "hour_x_bp",
+      "hour_x_devtype"
+    ],
+    "nums": [
+      "C14",
+      "C15",
+      "C16",
+      "C17",
+      "C18",
+      "C19",
+      "C20",
+      "C21",
+      "hour_sin",
+      "hour_cos",
+      "is_weekend",
+      "te_banner_pos",
+      "te_device_type",
+      "te_device_conn_type",
+      "te_site_category_red",
+      "te_app_category_red"
+    ]
+  },
+  "features_lgb": {
+    "cats": [
+      "banner_pos",
+      "device_type",
+      "device_conn_type",
+      "dow",
+      "site_category_red",
+      "app_category_red",
+      "hour_x_bp",
+      "hour_x_devtype"
+    ],
+    "nums": [
+      "C14",
+      "C15",
+      "C16",
+      "C17",
+      "C18",
+      "C19",
+      "C20",
+      "C21",
+      "hour_sin",
+      "hour_cos",
+      "is_weekend",
+      "te_banner_pos",
+      "te_device_type",
+      "te_device_conn_type",
+      "te_site_category_red",
+      "te_app_category_red"
+    ]
+  },
+  "te_cols": [
+    "te_banner_pos",
+    "te_device_type",
+    "te_device_conn_type",
+    "te_site_category_red",
+    "te_app_category_red"
+  ],
+  "dropped": [
+    "id",
+    "device_ip",
+    "device_id",
+    "site_id",
+    "app_id",
+    "device_model"
+  ]
+}
