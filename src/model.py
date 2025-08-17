@@ -66,6 +66,30 @@ def _lift_long_df(all_metrics: dict) -> pd.DataFrame | None:
 def render(df=None):
     st.header("Model")
 
+    st.markdown("#### How to read this page")
+    st.markdown(
+        """
+    1) **Validation metrics**: side-by-side LR vs LGBM — ranking (ROC-AUC/PR-AUC) + probability quality (LogLoss/Brier).
+    2) **Lift@K**: tiles + comparison bar — shows concentration at the top K% (budgeted users).
+    3) **Calibration & PDPs**: confirm scores behave like probabilities and patterns match EDA.
+    4) **Gain table & Importances**: decile view for operating points; which features drive the model.
+    **Bottom line**: prefer **LGBM (tuned + calibrated)** for NBA — better ranking and calibrated probabilities for economic thresholds.
+    """
+    )
+    
+    with st.expander("Extra details:"):
+        st.markdown(
+            """
+    - *“We trained two models: an interpretable **LR baseline** and a **LightGBM** tuned + **isotonic calibration**.  
+    - First, validation KPIs show LGBM leads on ranking and probability metrics.  
+    - Then, **Lift@K** demonstrates positive concentration in the top 10–20% — useful when budget is capped.  
+    - The **calibration curve** sits on the diagonal, so scores behave like true probabilities; that lets us apply **p★ = CPA/V**.  
+    - **PDPs** echo the EDA story (hour × placement / device), and importances confirm our FE choices.  
+    - So for the **NBA app**, we advance with **LGBM calibrated**; LR stays as a reference.”*
+            """
+        )
+
+
     if not REPORTS_DIR.exists():
         st.error("artifacts/reports/ not found. Please add exported reports.")
         return
