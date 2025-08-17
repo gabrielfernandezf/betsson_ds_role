@@ -229,8 +229,6 @@ def render(df: pd.DataFrame):
             bullets.append(f"- **banner_pos={bp['banner_pos']}** shows CTR {bp['ctr']:.4f} (lift **{bp['lift']:.2f}×**) with share {bp['share']:.2%}.")
         st.markdown("\n".join(bullets))
 
-        st.caption("These insights support Slide 3: EDA insights (distributions, correlations/associations, notable patterns).")
-
         # Auto-generated full summary (Markdown + JSON) + editor for last-mile tweaks
         st.subheader("Downloadable summary")
         dow_tbl = weekday_table(df)
