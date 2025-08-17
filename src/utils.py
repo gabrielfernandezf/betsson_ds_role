@@ -561,7 +561,7 @@ def render_footer(author: str, linkedin_url: str, repo_url: str | None = None):
         f"""
         <style>
         .gab-footer {{
-            position: fixed; left: 0; bottom: 0; width: 100%;
+            position: fixed; center: 0; bottom: 0; width: 100%;
             background: #040404; color: #ffffff; z-index: 9999;
             border-top: 1px solid rgba(255,255,255,.12);
             padding: 8px 16px; font-size: 0.9rem;
