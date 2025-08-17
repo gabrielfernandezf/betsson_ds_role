@@ -50,10 +50,10 @@ with st.sidebar:
         default_index=0,
         orientation="vertical",
     )
-with st.sidebar:
-    st.markdown("### About")
-    st.markdown("**Gabriel Fernández** · Senior DS Candidate")
-    st.markdown("[LinkedIn](https://www.linkedin.com/in/tu-perfil)")
+# with st.sidebar:
+#     st.markdown("### About")
+#     st.markdown("**Gabriel Fernández** · Senior DS Candidate")
+#     st.markdown("[LinkedIn](https://www.linkedin.com/in/gabriel-data-science/)")
 
 # -----------------------
 # Sections
