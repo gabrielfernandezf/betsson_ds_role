@@ -365,3 +365,188 @@ def build_eda_summary_json(high: dict, dow_tbl: pd.DataFrame, ctr_tabs: dict[str
         "by_dow": dow_tbl.to_dict(orient="records"),
         "categoricals": {name: tbl.to_dict(orient="records") for name, tbl in ctr_tabs.items()},
     }
+
+# ---------- NEW HELPERS: stats & formatting ----------
+
+def _wilson_ci(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    """
+    95% Wilson score interval for a binomial proportion.
+    Returns (low, high) in [0,1]. Safe for k=0 or k=n.
+    """
+    if n <= 0:
+        return (float("nan"), float("nan"))
+    p = k / n
+    denom = 1 + z**2 / n
+    center = (p + z**2/(2*n)) / denom
+    half = (z * ((p*(1-p)/n + z**2/(4*n**2)) ** 0.5)) / denom
+    lo, hi = max(0.0, center - half), min(1.0, center + half)
+    return lo, hi
+
+def _norm_sf(x: float) -> float:
+    """
+    Survival function 1-CDF for standard normal using erf (no scipy).
+    """
+    import math
+    return 0.5 * math.erfc(x / (2**0.5))
+
+def _p_value_one_prop(p_hat: float, n: int, p0: float) -> float:
+    """
+    Two-sided p-value for H0: p = p0 using normal approximation.
+    """
+    if n <= 0 or p0 <= 0 or p0 >= 1:
+        return float("nan")
+    se = (p0 * (1 - p0) / n) ** 0.5
+    if se == 0:
+        return float("nan")
+    z = abs((p_hat - p0) / se)
+    return 2 * _norm_sf(z)
+
+def _sig_stars(p: float) -> str:
+    """
+    Stars for significance: *** (<0.001), ** (<0.01), * (<0.05)
+    """
+    if not (p == p):  # NaN
+        return ""
+    if p < 1e-3:
+        return "***"
+    if p < 1e-2:
+        return "**"
+    if p < 5e-2:
+        return "*"
+    return ""
+
+# ---------- NEW: Day-of-week × Hour aggregation ----------
+
+@st.cache_data(show_spinner=False)
+def by_dow_hour(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Aggregates CTR by (dow, hour_of_day) with impressions and clicks.
+    Returns columns: dow, dow_name, hour_of_day, n, clicks, ctr.
+    """
+    if not {"dow", "hour_of_day", "click"}.issubset(df.columns):
+        return pd.DataFrame()
+    g = (
+        df.groupby(["dow", "hour_of_day"])
+          .agg(n=("click", "size"), clicks=("click", "sum"))
+          .reset_index()
+    )
+    g["ctr"] = g["clicks"] / g["n"]
+    g["dow_name"] = g["dow"].map({0:"Mon",1:"Tue",2:"Wed",3:"Thu",4:"Fri",5:"Sat",6:"Sun"})
+    return g.sort_values(["dow","hour_of_day"]).reset_index(drop=True)
+
+@st.cache_data(show_spinner=False)
+def alt_heatmap_hour_dow(t: pd.DataFrame):
+    """
+    Altair heatmap for CTR by Day-of-week × Hour.
+    Expects output of by_dow_hour(). Returns an Altair chart or None.
+    """
+    if t is None or t.empty:
+        return None
+    # Ensure correct dtypes
+    t = t.copy()
+    t["hour_of_day"] = t["hour_of_day"].astype(int)
+    t["dow_name"] = t["dow_name"].astype(str)
+
+    return (
+        alt.Chart(t)
+        .mark_rect()
+        .encode(
+            x=alt.X("hour_of_day:O", title="Hour"),
+            y=alt.Y("dow_name:N", title="Day of week", sort=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]),
+            color=alt.Color("ctr:Q", title="CTR", scale=alt.Scale(scheme="viridis")),
+            tooltip=[
+                alt.Tooltip("dow_name:N", title="DOW"),
+                alt.Tooltip("hour_of_day:O", title="Hour"),
+                alt.Tooltip("n:Q", title="Impr"),
+                alt.Tooltip("ctr:Q", title="CTR", format=".4f"),
+            ],
+        )
+        .properties(title="CTR heatmap — DOW × Hour", height=260)
+    )
+
+# ---------- NEW: Lift table with 95% CI & p-values ----------
+
+@st.cache_data(show_spinner=False)
+def ctr_table_stats(df: pd.DataFrame, col: str, min_n: int = 300, top: int = 15) -> pd.DataFrame:
+    """
+    Like ctr_table but adds:
+      - clicks
+      - 95% Wilson CI for CTR (ci_low, ci_high)
+      - p_value vs global CTR (two-sided, one-proportion z-test)
+      - sig stars
+    """
+    if col not in df.columns or "click" not in df.columns:
+        return pd.DataFrame()
+
+    base = float(df["click"].mean())
+    agg = (
+        df.groupby(col)
+          .agg(n=("click","size"), clicks=("click","sum"))
+          .reset_index()
+    )
+    agg = agg[agg["n"] >= min_n].copy()
+    if agg.empty:
+        return agg
+
+    agg["ctr"] = agg["clicks"] / agg["n"]
+    agg["share"] = agg["n"] / len(df)
+    agg["lift"] = agg["ctr"] / base
+
+    # Wilson CI & p-values
+    lo, hi, pvals, stars = [], [], [], []
+    for _, r in agg.iterrows():
+        l, h = _wilson_ci(int(r["clicks"]), int(r["n"]))
+        lo.append(l); hi.append(h)
+        p = _p_value_one_prop(float(r["ctr"]), int(r["n"]), base)
+        pvals.append(p); stars.append(_sig_stars(p))
+
+    agg["ci_low"] = lo
+    agg["ci_high"] = hi
+    agg["p_value"] = pvals
+    agg["sig"] = stars
+
+    # Order: by support desc, then by CTR desc
+    agg = agg.sort_values(["n", "ctr"], ascending=[False, False]).head(top)
+
+    # Nice formatting columns at the end
+    # (Keep raw numeric columns too for downloads)
+    return agg.reset_index(drop=True)
+
+# ---------- NEW: Altair mini-chart for CTR ± CI ----------
+
+def alt_lift_ci(tbl: pd.DataFrame, x_col: str, title: str):
+    """
+    Error-bar chart: CTR with 95% CI per level (expects columns: x_col, ctr, ci_low, ci_high, n).
+    Returns Altair chart or None.
+    """
+    needed = {x_col, "ctr", "ci_low", "ci_high", "n"}
+    if tbl is None or tbl.empty or not needed.issubset(tbl.columns):
+        return None
+
+    # Order x by support (n) desc for readability
+    order = tbl.sort_values("n", ascending=False)[x_col].astype(str).tolist()
+    data = tbl.copy()
+    data[x_col] = data[x_col].astype(str)
+
+    # Error bars (rule) + points
+    error_bars = (
+        alt.Chart(data)
+        .mark_rule()
+        .encode(
+            x=alt.X(f"{x_col}:N", sort=order, title=x_col),
+            y=alt.Y("ci_low:Q", title="CTR"),
+            y2="ci_high:Q",
+            tooltip=[x_col, alt.Tooltip("ctr:Q", format=".4f"), alt.Tooltip("ci_low:Q", format=".4f"), alt.Tooltip("ci_high:Q", format=".4f"), "n:Q"]
+        )
+    )
+    points = (
+        alt.Chart(data)
+        .mark_point(filled=True, size=60)
+        .encode(
+            x=alt.X(f"{x_col}:N", sort=order, title=x_col),
+            y=alt.Y("ctr:Q", title="CTR"),
+            tooltip=[x_col, alt.Tooltip("ctr:Q", format=".4f"), "n:Q"]
+        )
+    )
+    return (error_bars + points).properties(title=title, height=280)
+
