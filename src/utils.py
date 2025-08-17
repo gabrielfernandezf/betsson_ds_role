@@ -550,3 +550,36 @@ def alt_lift_ci(tbl: pd.DataFrame, x_col: str, title: str):
     )
     return (error_bars + points).properties(title=title, height=280)
 
+# --- Persistent footer with author + links ---
+def render_footer(author: str, linkedin_url: str, repo_url: str | None = None):
+    """
+    Sticky footer shown on every page.
+    Uses your app theme colors: bg #040404, links #0eaeb0 (hover #f66c24), text white.
+    """
+    repo_html = f' · <a href="{repo_url}" target="_blank" rel="noopener">GitHub</a>' if repo_url else ""
+    st.markdown(
+        f"""
+        <style>
+        .gab-footer {{
+            position: fixed; left: 0; bottom: 0; width: 100%;
+            background: #040404; color: #ffffff; z-index: 9999;
+            border-top: 1px solid rgba(255,255,255,.12);
+            padding: 8px 16px; font-size: 0.9rem;
+        }}
+        .gab-footer a {{
+            color: #0eaeb0; text-decoration: none;
+        }}
+        .gab-footer a:hover {{
+            color: #f66c24; text-decoration: underline;
+        }}
+        /* add bottom padding so content doesn't get covered by the footer */
+        .block-container {{ padding-bottom: 72px; }}
+        </style>
+        <div class="gab-footer">
+            Built by <strong>{author}</strong> ·
+            <a href="{linkedin_url}" target="_blank" rel="noopener">LinkedIn</a>{repo_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
