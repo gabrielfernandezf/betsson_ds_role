@@ -80,12 +80,12 @@ def render(df=None):
     with st.expander("Extra details:"):
         st.markdown(
             """
-    - *“We trained two models: an interpretable **LR baseline** and a **LightGBM** tuned + **isotonic calibration**.  
+    - *We trained two models: an interpretable **LR baseline** and a **LightGBM** tuned + **isotonic calibration**.  
     - First, validation KPIs show LGBM leads on ranking and probability metrics.  
     - Then, **Lift@K** demonstrates positive concentration in the top 10–20% — useful when budget is capped.  
     - The **calibration curve** sits on the diagonal, so scores behave like true probabilities; that lets us apply **p★ = CPA/V**.  
     - **PDPs** echo the EDA story (hour × placement / device), and importances confirm our FE choices.  
-    - So for the **NBA app**, we advance with **LGBM calibrated**; LR stays as a reference.”*
+    - So for the **NBA app**, we advance with **LGBM calibrated**; LR stays as a reference.*
             """
         )
 
