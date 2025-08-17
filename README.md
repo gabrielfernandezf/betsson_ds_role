@@ -1,29 +1,19 @@
-# betsson_ds_role
-Streamlit Repo for Betsson DS Assessment
-Theming & UX
-
-Theme in .streamlit/config.toml (dark):
-
-Background: #040404
-
-Primary: #f66c24
-
-Secondary: #0eaeb0
-
-Text: white
-
-Top navigation via streamlit-option-menu in main.py.
-
-Troubleshooting
-
-Blank metrics or images? Ensure files exist in artifacts/reports/ with the exact names above.
-
-Local paths: run the app from repo root (streamlit run main.py).
-
-Python version: tested on Python 3.10–3.13. If you hit wheels issues, try 3.11+.
-
-Notes & Attribution
-
-Dataset inspired by the Avazu CTR competition (Kaggle).
-
-This codebase is for an interview assessment; not production-grade.
+betsson_ds_role/
+├─ .streamlit/
+│  └─ config.toml                 # App theme (dark) + brand colors
+├─ artifacts/                     # Exported models & reports used by the app
+│  ├─ models/                     # (Saved model bundles — optional for this demo)
+│  ├─ reports/                    # ← The app reads from here (see list below)
+│  └─ notebooks/
+│     └─ 01_train_eval_export.ipynb  # Reproducible training notebook (English)
+├─ data/
+│  └─ avazu_50k_rows.csv          # Public sample used for EDA & demo
+├─ src/
+│  ├─ utils.py
+│  ├─ overview.py                 # Overview page (welcome, scope, approach)
+│  ├─ eda.py                      # Exploratory analysis (temporal, cats, interactions)
+│  ├─ model.py                    # LR vs LGBM metrics, calibration, gain table, importances
+│  └─ interp_business.py          # Decision helpers (budget, p★, profit/ROI, K*)
+├─ main.py                        # Top navigation & page routing
+├─ requirements.txt
+└─ README.md
