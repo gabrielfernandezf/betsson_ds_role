@@ -4,7 +4,7 @@
 A lightweight, transparent **propensity modeling** prototype to support **Next Best Action** decisions.  
 The Streamlit app walks through **EDA → Modeling (LR & LGBM) → Interpretability & Business** and shows how model scores become **budgeted actions** with **economic thresholds**.
 
-> **Live app:** _add your Streamlit Cloud URL here_  
+> **Live app:** (https://gabriel-ds-role.streamlit.app/)
 > **Slide-free demo:** the app itself is the presentation.
 
 ---
@@ -52,7 +52,7 @@ betsson_ds_role/
 │  ├─ models/                     # (Saved model bundles — optional for this demo)
 │  ├─ reports/                    # ← The app reads from here (see list below)
 │  └─ notebooks/
-│     └─ 01_train_eval_export.ipynb  # Reproducible training notebook (English)
+│     └─ 01_train_eval_export.ipynb  # Reproducible training notebook
 ├─ data/
 │  └─ avazu_50k_rows.csv          # Public sample used for EDA & demo
 ├─ src/
@@ -107,9 +107,6 @@ Place these under `artifacts/reports/` (created by the notebook):
 - `feature_importances.csv` — LightGBM importances (sorted)
 - `calibration_curve.png` — calibration plot (hold-out day)
 - `pd_banner_pos.png`, `pd_device_type.png`, `pd_device_conn_type.png` — PDP snapshots
-
-_Optional:_ `lr_coefficients.csv` & `lr_intercept.txt` if you export LR weights.
-
 ---
 
 ## Reproduce / Regenerate Artifacts
@@ -123,8 +120,6 @@ The notebook:
 3. Trains **Logistic Regression** (baseline) and **LightGBM** (tuned)  
 4. **Calibrates** LGBM (isotonic) and evaluates  
 5. **Exports** artifacts to `artifacts/reports/`
-
-> The Streamlit app is intentionally thin: it **reads artifacts** so the demo is stable and reproducible.
 
 ---
 
@@ -158,17 +153,10 @@ The notebook:
 ## Theming & UX
 - Theme in `.streamlit/config.toml` (dark):
   - Background: `#040404`
-  - Primary: `#f66c24`
-  - Secondary: `#0eaeb0`
+  - Primary: `#0eaeb0`
+  - Secondary: `#f66c24`
   - Text: white
 - Top navigation via `streamlit-option-menu` in `main.py`.
-
----
-
-## Troubleshooting
-- **Blank metrics or images?** Ensure files exist in `artifacts/reports/` with the exact names above.  
-- **Local paths:** run the app from repo root (`streamlit run main.py`).  
-- **Python version:** tested on Python **3.10–3.13**. If you hit wheels issues, try 3.11+.
 
 ---
 
