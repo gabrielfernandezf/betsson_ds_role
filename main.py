@@ -12,6 +12,7 @@ from src.overview import render as render_overview
 from src.eda import render as render_eda
 from src.model import render as render_model
 from src.interp_business import render as render_interp
+from src.utils import render_footer
 
 # -----------------------
 # Page config & styling
@@ -50,6 +51,12 @@ with st.sidebar:
         default_index=0,
         orientation="vertical",
     )
+    
+render_footer(
+    author="Gabriel Fernández",
+    linkedin_url="https://www.linkedin.com/in/tu-perfil",
+    repo_url="https://github.com/gabrielfernandezf/betsson_ds_role"  # opcional
+)
 # with st.sidebar:
 #     st.markdown("### About")
 #     st.markdown("**Gabriel Fernández** · Senior DS Candidate")
