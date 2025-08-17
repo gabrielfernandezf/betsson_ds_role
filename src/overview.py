@@ -128,7 +128,7 @@ def render(df: pd.DataFrame):
     # ---------------------------
     _divider()
     
-    st.subheader("How to review (interview flow)")
+    st.subheader("How to review")
     st.markdown(
         """
 1) Start with **EDA** to align on data shape and drivers.  
