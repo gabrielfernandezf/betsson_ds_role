@@ -54,8 +54,8 @@ with st.sidebar:
     
 render_footer(
     author="Gabriel Fernández",
-    linkedin_url="https://www.linkedin.com/in/tu-perfil",
-    repo_url="https://github.com/gabrielfernandezf/betsson_ds_role"  # opcional
+    linkedin_url="https://www.linkedin.com/in/gabriel-data-science/",
+    repo_url="https://github.com/gabrielfernandezf/betsson_ds_role" 
 )
 # with st.sidebar:
 #     st.markdown("### About")
